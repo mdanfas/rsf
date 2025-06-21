@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Wardrobe Visualizer - Dimensions, Scale & Pricing</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ... All your CSS styles remain exactly the same ... */
+        :root {
+            /* Night Mode UI Palette */
+            --bg-page-night: #121212;
+            --bg-card-night: #1e1e1e;
+            --bg-section-night: #2a2a2a;
+            --text-primary-night: #e0e0e0;
+            --text-secondary-night: #b0b0b0;
+            --accent-primary-night: #bb86fc;
+            --accent-primary-darker-night: #a166f0;
+            --accent-secondary-night: #03dac6;
+            --accent-secondary-darker-night: #01b0a1;
+            --border-night: #333333;
+            --input-bg-night: #2c2c2c;
+            --shadow-night: rgba(0, 0, 0, 0.4);
+            --button-secondary-bg-night: #383838;
+            --button-secondary-hover-bg-night: #4a4a4a;
+            --canvas-bg: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            height: 100vh;
+            background-color: var(--bg-page-night);
+            color: var(--text-primary-night);
+            overflow: hidden; /* Prevent body scrollbars when content fits */
+        }
+
+        #controls-container {
+            width: 30%; /* Adjusted for smaller UI on desktop */
+            min-width: 380px; /* Adjusted min-width */
+            max-width: 450px; /* Adjusted max-width */
+            padding: 25px 30px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-card-night);
+            border-right: 1px solid var(--border-night);
+            box-shadow: 5px 0px 25px var(--shadow-night);
+            overflow-y: auto; /* Allows scrolling within controls if content overflows */
+        }
+
+        #controls-container h2 {
+            margin-top: 0;
+            margin-bottom: 25px;
+            color: var(--text-primary-night);
+            text-align: center;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 1.75em;
+        }
+
+        .config-section {
+            background-color: var(--bg-section-night);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-night);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+         #controls-container > .config-section:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .section-header {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.1em;
+            font-weight: 500;
+            color: var(--accent-primary-night);
+            margin-top: 0;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-night);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .collapsible-header {
+            cursor: pointer;
+        }
+        .collapsible-header .arrow-icon {
+            font-size: 0.8em;
+            transition: transform 0.2s ease-in-out;
+        }
+        .collapsible-header .arrow-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+        .collapsible-content.collapsed {
+            display: none;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .input-row:last-child { margin-bottom: 0; }
+        .input-row .control-group { flex: 1; margin-bottom: 0; }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.8em;
+            color: var(--text-secondary-night);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control-group select,
+        .control-group input[type="number"],
+        .control-group input[type="range"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-night);
+            border-radius: 6px;
+            background-color: var(--input-bg-night);
+            box-sizing: border-box;
+            font-size: 0.95em;
+            color: var(--text-primary-night);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .control-group input[type="range"] {
+            padding: 0;
+            accent-color: var(--accent-primary-night);
+        }
+
+        .control-group select:focus,
+        .control-group input[type="number"]:focus,
+        .control-group input[type="range"]:focus {
+            border-color: var(--accent-primary-night);
+            box-shadow: 0 0 0 3px rgba(187, 134, 252, 0.25);
+            outline: none;
+        }
+        .control-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            vertical-align: middle;
+            accent-color: var(--accent-primary-night);
+        }
+
+        .inline-label {
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 0 !important;
+            font-size: 0.95em;
+            color: var(--text-primary-night);
+            cursor: pointer;
+        }
+        .fov-value-display, .dimension-scale-display, .dimension-offset-display {
+            font-size: 0.85em;
+            color: var(--text-secondary-night);
+            margin-left: 10px;
+        }
+
+        .standard-height-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+        .standard-height-buttons button {
+            flex: 1;
+            padding: 8px 10px;
+            font-size: 0.85em;
+            background-color: var(--button-secondary-bg-night);
+            color: var(--text-primary-night);
+            border: 1px solid var(--border-night);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .standard-height-buttons button:hover {
+            background-color: var(--button-secondary-hover-bg-night);
+        }
+
+        .partitions-control {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-top: 0;
+        }
+        .partitions-control > label {
+            margin-bottom: 8px;
+            font-size: 0.85em;
+            font-weight: 500;
+            color: var(--text-secondary-night);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .partition-interaction-group {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            justify-content: space-between;
+        }
+        .partitions-display-container {
+            display: flex;
+            align-items: center;
+        }
+        .partitions-display-container button {
+            padding: 8px 12px;
+            font-size: 0.9em;
+            font-weight: 500;
+            background-color: var(--input-bg-night);
+            border: 1px solid var(--border-night);
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0 5px;
+            color: var(--text-primary-night);
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        .partitions-display-container button:hover { background-color: #3a3a50; }
+        .partitions-display-container button:active { background-color: #4a4a60; transform: translateY(1px); }
+
+        .num-partitions-display {
+            padding: 8px 10px;
+            font-size: 0.95em;
+            min-width: 30px;
+            text-align: center;
+            border: 1px solid var(--border-night);
+            border-radius: 6px;
+            background-color: var(--input-bg-night);
+            margin-right: 8px;
+        }
+        .door-width-display {
+            font-size: 0.85em;
+            color: var(--text-secondary-night);
+            padding: 8px 0;
+            min-width: 70px;
+            text-align: right;
+        }
+
+        .action-buttons-container {
+            margin-top: 25px;
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        .action-button {
+            flex: 1;
+            padding: 10px;
+            font-weight: 500;
+            font-family: 'Poppins', sans-serif;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 5px var(--shadow-night);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+        }
+        .action-button svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+        .action-button:active { transform: translateY(1px); box-shadow: 0 1px 3px var(--shadow-night); }
+        #printButton { background-color: var(--accent-primary-night); }
+        #printButton:hover { background-color: var(--accent-primary-darker-night); }
+        #exportImageButton { background-color: var(--accent-secondary-night); }
+        #exportImageButton:hover { background-color: var(--accent-secondary-darker-night); }
+        #zoomToFitButton { background-color: var(--button-secondary-bg-night); color: var(--text-primary-night); }
+        #zoomToFitButton:hover { background-color: var(--button-secondary-hover-bg-night); }
+        #shareImageButton { background-color: #6366f1; }
+        #shareImageButton:hover { background-color: #4f46e5; }
+
+
+        #canvas-container {
+            flex-grow: 1;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--canvas-bg);
+            cursor: grab;
+        }
+        #canvas-container:active { cursor: grabbing; }
+
+        canvas { display: block; max-width: 100%; max-height: 100%; }
+
+        #message-area {
+            font-size: 0.9em; height: 20px; margin-top: 15px; text-align: center; font-weight: 500;
+            transition: color 0.3s ease, opacity 0.3s ease;
+            opacity: 0;
+        }
+        #message-area.visible { opacity: 1; }
+        #message-area.success { color: var(--accent-secondary-night); }
+        #message-area.error { color: #cf6679; }
+
+        .hidden-inputs { display: none; }
+        .hidden { display: none !important; }
+
+
+        .info-display-row, .price-display-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 0.9em;
+        }
+        .info-display-row span:first-child,
+        .price-display-row span:first-child {
+            color: var(--text-secondary-night);
+        }
+        .info-display-row span:last-child,
+        .price-display-row span:last-child {
+            font-weight: 500;
+            color: var(--text-primary-night);
+        }
+        .total-price-row strong span {
+            font-size: 1.1em;
+            color: var(--accent-secondary-night) !important;
+        }
+         .total-price-row strong {
+            color: inherit;
+        }
+
+
+        .door-type-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        .door-type-control span:first-child {
+             color: var(--text-secondary-night);
+             flex-basis: 30%;
+        }
+
+        .stepper-input {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+            justify-content: flex-end;
+        }
+        .stepper-input button {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            font-size: 1.2em;
+            background-color: var(--input-bg-night);
+            color: var(--text-primary-night);
+            border: 1px solid var(--border-night);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            line-height: 30px;
+        }
+        .stepper-input button:hover {
+            background-color: #3a3a50;
+        }
+        .stepper-input input[type="number"] {
+            width: 50px;
+            text-align: center;
+            margin: 0 5px;
+            padding: 6px 8px;
+            font-size: 0.9em;
+            -moz-appearance: textfield;
+            background-color: var(--input-bg-night);
+            color: var(--text-primary-night);
+            border: 1px solid var(--border-night);
+            border-radius: 6px;
+        }
+        .stepper-input input[type="number"]::-webkit-outer-spin-button,
+        .stepper-input input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        @media (max-width: 900px) {
+            body {
+                flex-direction: column;
+                height: auto; /* Allow body to grow with content */
+                overflow-y: auto; /* Allow vertical scrolling for the entire body */
+            }
+            #controls-container {
+                width: 100%;
+                min-width: unset;
+                max-width: none;
+                border-right: none;
+                border-bottom: 1px solid var(--border-night);
+                height: auto; /* Allow controls to take needed height */
+                padding: 20px; /* Adjusted padding */
+                box-shadow: 0 3px 10px var(--shadow-night);
+                overflow-y: visible; /* Controls container itself should not scroll, body will */
+            }
+            .config-section { padding: 15px; }
+            .control-group { /* Removed max-width to allow full use of controls-container width */
+                width: 100%;
+                margin-left: auto;
+                margin-right: auto;
+            }
+             .action-buttons-container {
+                width: 100%;
+                max-width: 500px; /* Keep max-width for button group for better centering */
+                margin-left: auto;
+                margin-right: auto;
+                flex-direction: row;
+                flex-wrap: wrap;
+                margin-bottom: 30px; /* Added margin for spacing at the bottom */
+            }
+            .input-row { flex-direction: column; gap: 12px; }
+            .input-row .control-group { margin-bottom: 12px; }
+            .partitions-control > label { flex-basis: 100%; text-align: left; margin-bottom: 8px;}
+            .partition-interaction-group { justify-content: space-between; }
+
+
+            .action-buttons-container .action-button {
+                min-width: 100px;
+                flex-grow: 1;
+                flex-basis: calc(33.333% - 10px);
+                margin-bottom: 10px;
+            }
+
+
+            #canvas-container {
+                width: 100%;
+                height: 60vh; /* Or a fixed pixel value if preferred */
+                min-height: 350px;
+                padding: 15px;
+                box-sizing: border-box;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ... All your HTML body content remains exactly the same ... -->
+    <div id="controls-container">
+        <h2>Wardrobe Designer</h2>
+
+        <div class="config-section">
+            <h3 class="section-header">Configuration</h3>
+            <div class="control-group">
+                <label for="wardrobeShape">Wardrobe Shape</label>
+                <select id="wardrobeShape">
+                    <option value="straight" selected>Straight</option>
+                    <option value="l-shaped">L-Shaped</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="straightInputsContainer">
+            <div class="config-section">
+                <h3 class="section-header">Straight Wardrobe</h3>
+                <div class="input-row">
+                    <div class="control-group">
+                        <label for="s_wardrobeWidth">Width (cm)</label>
+                        <input type="number" id="s_wardrobeWidth" value="180" min="10" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="s_wardrobeDepth">Depth (cm)</label>
+                        <input type="number" id="s_wardrobeDepth" value="55" min="10" step="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="lShapeInputsContainer" class="hidden-inputs">
+            <div class="config-section">
+                <h3 class="section-header">Left Side (Overall X)</h3>
+                <div class="input-row">
+                    <div class="control-group">
+                        <label for="l_mainWidth">Overall Width (cm)</label>
+                        <input type="number" id="l_mainWidth" value="180" min="10" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="l_mainDepth">Depth (cm)</label>
+                        <input type="number" id="l_mainDepth" value="55" min="10" step="1">
+                    </div>
+                </div>
+            </div>
+            <div class="config-section">
+                <h3 class="section-header">Right Side (Extends Z)</h3>
+                <div class="input-row">
+                    <div class="control-group">
+                        <label for="l_returnLegLength">Length (cm)</label>
+                        <input type="number" id="l_returnLegLength" value="120" min="10" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="l_returnLegDepth">Depth (cm)</label>
+                        <input type="number" id="l_returnLegDepth" value="55" min="10" step="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-section">
+            <h3 class="section-header">Overall & Internal Setup</h3>
+            <div class="control-group">
+                <label for="wardrobeHeight">Overall Height (cm)</label>
+                <input type="number" id="wardrobeHeight" value="200" min="10" step="1">
+                <div class="standard-height-buttons">
+                    <button data-height="210">210cm</button>
+                    <button data-height="240">240cm</button>
+                    <button data-height="300">300cm</button>
+                </div>
+            </div>
+            <div id="horizontalPartitionContainer" style="margin-top:15px;">
+                <div>
+                    <label for="enableHorizontalPartition" class="inline-label">
+                        <input type="checkbox" id="enableHorizontalPartition">
+                        Add Horizontal Shelf
+                    </label>
+                </div>
+                <div id="horizontalPartitionPositionControl" class="hidden-inputs" style="margin-top: 10px;">
+                     <label for="horizontalPartitionHeightInput">Shelf Position from Base (cm)</label>
+                     <input type="number" id="horizontalPartitionHeightInput" value="200" min="10" step="1">
+                </div>
+            </div>
+        </div>
+
+        <div class="config-section" id="partitionsContainer">
+             <h3 class="section-header">Vertical Doors</h3>
+            <div id="straight_partitions_control" class="partitions-control">
+                <label for="numPartitionsStraight">Straight Wardrobe Doors</label>
+                <div class="partition-interaction-group">
+                    <div class="partitions-display-container">
+                        <button id="decreasePartitionsStraightBtn">-</button>
+                        <span id="numPartitionsStraight" class="num-partitions-display">2</span>
+                        <button id="increasePartitionsStraightBtn">+</button>
+                    </div>
+                    <span id="doorWidthStraight" class="door-width-display">(~0cm)</span>
+                </div>
+            </div>
+            <div id="l_main_partitions_control" class="partitions-control hidden-inputs">
+                <label for="numPartitionsLMain">Left Side Doors</label>
+                 <div class="partition-interaction-group">
+                    <div class="partitions-display-container">
+                        <button id="decreasePartitionsLMainBtn">-</button>
+                        <span id="numPartitionsLMain" class="num-partitions-display">2</span>
+                        <button id="increasePartitionsLMainBtn">+</button>
+                    </div>
+                    <span id="doorWidthLMain" class="door-width-display">(~0cm)</span>
+                </div>
+            </div>
+            <div id="l_return_partitions_control" class="partitions-control hidden-inputs">
+                <label for="numPartitionsLReturn">Right Side Doors</label>
+                 <div class="partitions-display-container">
+                    <div class="partitions-display-container">
+                        <button id="decreasePartitionsLReturnBtn">-</button>
+                        <span id="numPartitionsLReturn" class="num-partitions-display">1</span>
+                        <button id="increasePartitionsLReturnBtn">+</button>
+                    </div>
+                    <span id="doorWidthLReturn" class="door-width-display">(~0cm)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-section">
+            <h3 class="section-header collapsible-header" data-collapsible-target="viewOptionsContent">
+                View Options <span class="arrow-icon">&#9654;</span>
+            </h3>
+            <div id="viewOptionsContent" class="collapsible-content collapsed">
+                <div class="control-group">
+                    <label for="fovSlider">Field of View (Zoom): <span id="fovValueDisplay">50</span>&deg;</label>
+                    <input type="range" id="fovSlider" min="30" max="120" value="50">
+                </div>
+                <div class="control-group" style="margin-top: 15px;">
+                    <label for="dimensionLabelScaleSlider">Dimension Label Scale: <span id="dimensionScaleDisplay">1.0</span>x</label>
+                    <input type="range" id="dimensionLabelScaleSlider" value="1.0" min="0.5" max="3.0" step="0.1">
+                </div>
+                <div class="control-group" style="margin-top: 15px;">
+                     <label for="dimensionOffsetSlider">Dimension Offset (cm): <span id="dimensionOffsetDisplay">30</span></label>
+                    <input type="range" id="dimensionOffsetSlider" value="30" min="10" max="100" step="1">
+                </div>
+            </div>
+        </div>
+
+        <div class="config-section" id="pricingSection">
+            <h3 class="section-header collapsible-header" data-collapsible-target="quoteEstimatorContent">
+                Quote Estimator <span class="arrow-icon">&#9654;</span>
+            </h3>
+            <div id="quoteEstimatorContent" class="collapsible-content collapsed">
+                <div class="control-group">
+                    <label>CONFIGURATION</label>
+                    <div class="info-display-row">
+                        <span>Total Doors (on Legs):</span>
+                        <span id="displayTotalDoorsForPricing">0</span>
+                    </div>
+                    <div class="info-display-row">
+                        <span>Corner Unit (1 Wooden Door):</span>
+                        <span id="displayCornerUnits">0</span>
+                    </div>
+                </div>
+
+                <div class="control-group" style="margin-top: 15px;">
+                    <label>DOOR MATERIAL MIX (for Leg Doors - Max: <span id="displayMaxAssignableDoors">0</span>)</label>
+                    <div class="door-type-control">
+                        <span>Wooden:</span>
+                        <div class="stepper-input">
+                            <button id="decreaseWoodenDoorsBtn" aria-label="Decrease Wooden Doors">-</button>
+                            <input type="number" id="numWoodenDoors" value="0" min="0" readonly>
+                            <button id="increaseWoodenDoorsBtn" aria-label="Increase Wooden Doors">+</button>
+                        </div>
+                    </div>
+                    <div class="door-type-control">
+                        <span>Aluminum:</span>
+                        <div class="stepper-input">
+                            <button id="decreaseAluminumDoorsBtn" aria-label="Decrease Aluminum Doors">-</button>
+                            <input type="number" id="numAluminumDoors" value="0" min="0" readonly>
+                            <button id="increaseAluminumDoorsBtn" aria-label="Increase Aluminum Doors">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group" style="margin-top: 20px; border-top: 1px solid var(--border-night); padding-top: 15px;">
+                    <label>ESTIMATED COST (AED)</label>
+                    <div class="price-display-row">
+                        <span>Subtotal:</span>
+                        <span id="displaySubtotal">0.00</span>
+                    </div>
+                    <div class="price-display-row">
+                        <span>VAT (5%):</span>
+                        <span id="displayVat">0.00</span>
+                    </div>
+                    <div class="price-display-row total-price-row">
+                        <strong><span>TOTAL (Approx.):</span></strong>
+                        <strong><span id="displayTotalRounded">0</span></strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="message-area"></div>
+
+        <div class="action-buttons-container">
+            <button id="zoomToFitButton" class="action-button" aria-label="Zoom to Fit">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.71,20.29,18,16.61A9,9,0,1,0,16.61,18l3.68,3.68a1,1,0,0,0,1.42,0A1,1,0,0,0,21.71,20.29ZM11,18a7,7,0,1,1,7-7A7,7,0,0,1,11,18ZM12,10H10v1a1,1,0,0,1-2,0V10H6a1,1,0,0,1,0-2H8V6A1,1,0,0,1,10,6V8h2a1,1,0,0,1,0,2Z M4,6H2V2H6V4H4ZM20,6H18V2h4V6H20ZM4,20H2V16H4Zm16,0H18V16h2Z"/></svg>
+            </button>
+            <button id="printButton" class="action-button" aria-label="Print Design">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"></path></svg>
+            </button>
+            <button id="exportImageButton" class="action-button" aria-label="Export as Image">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"></path></svg>
+            </button>
+            <button id="shareImageButton" class="action-button" aria-label="Share Design">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"></path></svg>
+            </button>
+        </div>
+    </div>
+    <div id="canvas-container"></div>
+    
+    <script type="module">
+        // ... All your Three.js and logic code remains the same ...
+        let scene, camera, renderer, controls;
+        let wardrobeGroup;
+        let dimensionLabelsGroup;
+        let dimensionLineMaterial;
+        let canvasContainer = document.getElementById('canvas-container');
+
+        // --- DOM Element References ---
+        let shapeSelector = document.getElementById('wardrobeShape');
+        let s_widthInput = document.getElementById('s_wardrobeWidth');
+        let s_depthInput = document.getElementById('s_wardrobeDepth');
+        let l_mainWidthInput = document.getElementById('l_mainWidth');
+        let l_mainDepthInput = document.getElementById('l_mainDepth');
+        let l_returnLegLengthInput = document.getElementById('l_returnLegLength');
+        let l_returnLegDepthInput = document.getElementById('l_returnLegDepth');
+        let heightInput = document.getElementById('wardrobeHeight');
+        let straightInputsContainer = document.getElementById('straightInputsContainer');
+        let lShapeInputsContainer = document.getElementById('lShapeInputsContainer');
+
+        let straightPartitionsControl = document.getElementById('straight_partitions_control');
+        let numPartitionsStraightDisplay = document.getElementById('numPartitionsStraight');
+        let doorWidthStraightDisplay = document.getElementById('doorWidthStraight');
+        let decreasePartitionsStraightBtn = document.getElementById('decreasePartitionsStraightBtn');
+        let increasePartitionsStraightBtn = document.getElementById('increasePartitionsStraightBtn');
+
+        let lMainPartitionsControl = document.getElementById('l_main_partitions_control');
+        let numPartitionsLMainDisplay = document.getElementById('numPartitionsLMain');
+        let doorWidthLMainDisplay = document.getElementById('doorWidthLMain');
+        let decreasePartitionsLMainBtn = document.getElementById('decreasePartitionsLMainBtn');
+        let increasePartitionsLMainBtn = document.getElementById('increasePartitionsLMainBtn');
+
+        let lReturnPartitionsControl = document.getElementById('l_return_partitions_control');
+        let numPartitionsLReturnDisplay = document.getElementById('numPartitionsLReturn');
+        let doorWidthLReturnDisplay = document.getElementById('doorWidthLReturn');
+        let decreasePartitionsLReturnBtn = document.getElementById('decreasePartitionsLReturnBtn');
+        let increasePartitionsLReturnBtn = document.getElementById('increasePartitionsLReturnBtn');
+
+        let horizontalPartitionContainer = document.getElementById('horizontalPartitionContainer');
+        let enableHorizontalPartitionCheckbox = document.getElementById('enableHorizontalPartition');
+        let horizontalPartitionPositionControl = document.getElementById('horizontalPartitionPositionControl');
+        let horizontalPartitionHeightInput = document.getElementById('horizontalPartitionHeightInput');
+        let fovSlider = document.getElementById('fovSlider');
+        let fovValueDisplay = document.getElementById('fovValueDisplay');
+        let dimensionLabelScaleSlider = document.getElementById('dimensionLabelScaleSlider');
+        let dimensionScaleDisplay = document.getElementById('dimensionScaleDisplay');
+        let dimensionOffsetSlider = document.getElementById('dimensionOffsetSlider');
+        let dimensionOffsetDisplay = document.getElementById('dimensionOffsetDisplay');
+        let standardHeightButtons = document.querySelectorAll('.standard-height-buttons button');
+        let printButton = document.getElementById('printButton');
+        let exportImageButton = document.getElementById('exportImageButton');
+        let zoomToFitButton = document.getElementById('zoomToFitButton');
+        let shareImageButton = document.getElementById('shareImageButton');
+        let messageArea = document.getElementById('message-area');
+        // let printInfoOverlay = document.getElementById('printInfoOverlay'); // No longer directly used for print content
+
+
+        // --- Pricing DOM References ---
+        let displayTotalDoorsForPricing = document.getElementById('displayTotalDoorsForPricing');
+        let displayCornerUnits = document.getElementById('displayCornerUnits');
+        let displayMaxAssignableDoors = document.getElementById('displayMaxAssignableDoors');
+        let numWoodenDoorsInput = document.getElementById('numWoodenDoors');
+        let decreaseWoodenDoorsBtn = document.getElementById('decreaseWoodenDoorsBtn');
+        let increaseWoodenDoorsBtn = document.getElementById('increaseWoodenDoorsBtn');
+        let numAluminumDoorsInput = document.getElementById('numAluminumDoors');
+        let decreaseAluminumDoorsBtn = document.getElementById('decreaseAluminumDoorsBtn');
+        let increaseAluminumDoorsBtn = document.getElementById('increaseAluminumDoorsBtn');
+        let displaySubtotal = document.getElementById('displaySubtotal');
+        let displayVat = document.getElementById('displayVat');
+        let displayTotalRounded = document.getElementById('displayTotalRounded');
+
+        // --- Constants and State Variables ---
+        const HORIZONTAL_PARTITION_DEFAULT_POS = 200; // Default position for horizontal partition if enabled
+        const DIM_SPRITE_OFFSET_FROM_LINE = 10; // Offset for dimension text from its line
+        let currentActualMainLegSegmentLength = 0; // Calculated actual length of the main leg in L-shape
+        let currentMainLegActualDepth = 0; // Actual depth of main leg used in L-shape calculations
+        let currentEffectiveRightLength = 0; // Calculated effective length of the return leg in L-shape
+        let currentReturnLegActualDepth = 0; // Actual depth of return leg used in L-shape calculations
+        let currentAssignableDoors = 0; // Total doors that can have materials assigned (for pricing)
+        const SMILECODER_MAP = ['R', 'S', 'M', 'I', 'L', 'E', 'C', 'O', 'D', 'A']; // For encoding price
+
+
+        // --- Initialization Function ---
+        function init() {
+            // Initialize Three.js scene, camera, renderer, controls
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xffffff); // Canvas background color
+            const aspectRatio = canvasContainer.clientWidth / canvasContainer.clientHeight;
+            camera = new THREE.PerspectiveCamera(parseFloat(fovSlider.value), aspectRatio, 1, 5000);
+            camera.position.set(300, 250, 500); // Initial camera position
+            renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); // Enable antialiasing and preserve buffer for export
+            renderer.setPixelRatio(window.devicePixelRatio); // Adjust for screen pixel density
+            renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+            canvasContainer.appendChild(renderer.domElement); // Add renderer to the canvas container
+            controls = new THREE.OrbitControls(camera, renderer.domElement); // Initialize orbit controls
+            controls.enableDamping = true; // Smooth camera movement
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false; // Pan in direction of camera
+            controls.minDistance = 50; // Min zoom distance
+            controls.maxDistance = 2000; // Max zoom distance
+            controls.maxPolarAngle = Math.PI / 1.9; // Limit vertical rotation
+            controls.addEventListener('change', renderScene); // Re-render on control change
+            wardrobeGroup = new THREE.Group(); // Group for all wardrobe parts
+            scene.add(wardrobeGroup);
+            dimensionLabelsGroup = new THREE.Group(); // Group for dimension labels
+            scene.add(dimensionLabelsGroup);
+            dimensionLineMaterial = new THREE.LineBasicMaterial({ color: 0x888888, linewidth: 1.5 }); // Material for dimension lines
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9); // Soft ambient light
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7); // Brighter directional light
+            directionalLight.position.set(150, 200, 250);
+            scene.add(directionalLight);
+
+            // Add event listeners to controls
+            shapeSelector.addEventListener('change', handleShapeChange);
+
+            // List of all dimension input elements
+            const allDimInputs = [
+                s_widthInput, s_depthInput,
+                l_mainWidthInput, l_mainDepthInput, l_returnLegLengthInput, l_returnLegDepthInput,
+                heightInput, horizontalPartitionHeightInput
+            ];
+
+            // Add input event listeners and focus listeners for auto-selection
+            allDimInputs.forEach(input => {
+                if (input) { // Check if the element exists
+                    input.addEventListener('input', () => {
+                        if (input === heightInput) { // If height changes, update shelf control state
+                            updateHorizontalPartitionControlsState();
+                        }
+                        // If L-shape dimensions or straight width change, auto-calculate doors
+                        if (shapeSelector.value === 'l-shaped' && (input === l_mainWidthInput || input === l_returnLegDepthInput || input === l_returnLegLengthInput || input === l_mainDepthInput)) {
+                             autoCalculateDoors();
+                        } else if (input === s_widthInput) {
+                             autoCalculateDoors();
+                        }
+                        updateWardrobeVisuals(); // Redraw wardrobe
+                        updatePricingUIConfig(); // Update pricing display
+                    });
+                    // Add focus event listener to select text on click
+                    input.addEventListener('focus', function() { this.select(); });
+                }
+            });
+
+            // Standard height buttons
+            standardHeightButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    heightInput.value = button.dataset.height;
+                    // Dispatch an input event to trigger updates
+                    const event = new Event('input', { bubbles: true, cancelable: true });
+                    heightInput.dispatchEvent(event);
+                });
+            });
+
+            // Partition (door) count buttons
+            decreasePartitionsStraightBtn.addEventListener('click', () => { changeDoors('straight', -1); updatePricingUIConfig(); });
+            increasePartitionsStraightBtn.addEventListener('click', () => { changeDoors('straight', 1); updatePricingUIConfig(); });
+            decreasePartitionsLMainBtn.addEventListener('click', () => { changeDoors('l_left', -1); updatePricingUIConfig(); });
+            increasePartitionsLMainBtn.addEventListener('click', () => { changeDoors('l_left', 1); updatePricingUIConfig(); });
+            decreasePartitionsLReturnBtn.addEventListener('click', () => { changeDoors('l_right', -1); updatePricingUIConfig(); });
+            increasePartitionsLReturnBtn.addEventListener('click', () => { changeDoors('l_right', 1); updatePricingUIConfig(); });
+
+            // Horizontal partition controls
+            enableHorizontalPartitionCheckbox.addEventListener('change', () => {
+                updateHorizontalPartitionControlsState();
+                updateWardrobeVisuals();
+            });
+
+            // View options
+            fovSlider.addEventListener('input', () => {
+                camera.fov = parseFloat(fovSlider.value);
+                camera.updateProjectionMatrix();
+                fovValueDisplay.textContent = fovSlider.value;
+                handleZoomToFit(); // Adjust zoom to fit after FOV change
+                renderScene();
+            });
+            dimensionLabelScaleSlider.addEventListener('input', () => {
+                const scaleValue = parseFloat(dimensionLabelScaleSlider.value);
+                dimensionScaleDisplay.textContent = scaleValue.toFixed(1);
+                updateDimensionLabels(); // Redraw dimension labels with new scale
+            });
+            dimensionOffsetSlider.addEventListener('input', () => {
+                const offsetValue = parseFloat(dimensionOffsetSlider.value);
+                dimensionOffsetDisplay.textContent = offsetValue.toFixed(0);
+                updateDimensionLabels(); // Redraw dimension labels with new offset
+            });
+
+            // Action buttons
+            printButton.addEventListener('click', handlePrint);
+            exportImageButton.addEventListener('click', handleExportImage);
+            zoomToFitButton.addEventListener('click', handleZoomToFit);
+            shareImageButton.addEventListener('click', handleShareImage);
+
+            // Pricing door type buttons
+            decreaseWoodenDoorsBtn.addEventListener('click', () => handleDoorTypeChange('wooden', -1));
+            increaseWoodenDoorsBtn.addEventListener('click', () => handleDoorTypeChange('wooden', 1));
+            decreaseAluminumDoorsBtn.addEventListener('click', () => handleDoorTypeChange('aluminum', -1));
+            increaseAluminumDoorsBtn.addEventListener('click', () => handleDoorTypeChange('aluminum', 1));
+
+            // Collapsible sections
+            document.querySelectorAll('.collapsible-header').forEach(header => {
+                const targetId = header.dataset.collapsibleTarget;
+                const content = document.getElementById(targetId);
+                const icon = header.querySelector('.arrow-icon');
+
+                // Set initial icon state based on content visibility
+                if (content && content.classList.contains('collapsed')) {
+                    icon.innerHTML = '&#9654;'; // Right arrow
+                    icon.classList.add('collapsed');
+                } else if (icon) {
+                    icon.innerHTML = '&#9660;'; // Down arrow
+                    icon.classList.remove('collapsed');
+                }
+
+                header.addEventListener('click', () => {
+                    if (content) {
+                        content.classList.toggle('collapsed');
+                        icon.classList.toggle('collapsed');
+                        if (content.classList.contains('collapsed')) {
+                            icon.innerHTML = '&#9654;';
+                        } else {
+                            icon.innerHTML = '&#9660;';
+                        }
+                    }
+                });
+            });
+
+            // Initial setup calls
+            window.addEventListener('resize', onWindowResize); // Handle window resize
+            handleShapeChange(); // Set initial UI based on default shape
+            updateHorizontalPartitionControlsState(); // Set initial shelf control state
+            autoCalculateDoors(); // Calculate initial door counts
+            updateWardrobeVisuals(); // Draw initial wardrobe
+            updatePricingUIConfig(); // Calculate initial price
+            animate(); // Start animation loop
+        }
+
+        // --- Data Retrieval for Print/Share ---
+        function getWardrobeInfoData() {
+            const info = {};
+            const selectedShape = shapeSelector.value;
+            const currentHeightVal = parseFloat(heightInput.value) || 200;
+
+            info.companyName = "Rashid Al Sharari Furniture"; // Company name
+
+            // Wardrobe dimensions string
+            if (selectedShape === 'straight') {
+                info.dimensions = `Straight: ${s_widthInput.value}cm W x ${s_depthInput.value}cm D x ${currentHeightVal}cm H`;
+            } else {
+                info.dimensions = `L-Shaped: Main (${l_mainWidthInput.value}cm W x ${l_mainDepthInput.value}cm D) / Return (${l_returnLegLengthInput.value}cm L x ${l_returnLegDepthInput.value}cm D) x ${currentHeightVal}cm H`;
+            }
+
+            const woodenDoorsCount = parseInt(numWoodenDoorsInput.value) || 0;
+            const aluminumDoorsCount = parseInt(numAluminumDoorsInput.value) || 0;
+            info.doorConfig = `Doors - W ${woodenDoorsCount} - A ${aluminumDoorsCount}`; // Door configuration string
+
+            // Calculate cost price (internal use, for encoding)
+            let costPriceSubtotal = 0;
+            costPriceSubtotal += woodenDoorsCount * getDoorCost("wooden", currentHeightVal);
+            costPriceSubtotal += aluminumDoorsCount * getDoorCost("aluminum", currentHeightVal);
+            if (selectedShape === 'l-shaped') { // L-shape has an additional fixed corner door
+                 costPriceSubtotal += getDoorCost("wooden", currentHeightVal);
+            }
+
+            const costPriceVAT = costPriceSubtotal * 0.05;
+            const totalCostPrice = costPriceSubtotal + costPriceVAT;
+            info.codedCost = `${encodePrice(Math.round(totalCostPrice))}`; // Encoded cost price
+
+            info.totalSellingPrice = `AED ${displayTotalRounded.textContent}`; // Formatted total selling price
+
+            return info;
+        }
+
+        // --- Price Encoding ---
+        function encodePrice(price) {
+            const priceStr = String(price);
+            let encoded = "";
+            for (let char of priceStr) {
+                const digit = parseInt(char);
+                if (!isNaN(digit) && digit >= 0 && digit <= 9) {
+                    encoded += SMILECODER_MAP[digit]; // Replace digit with corresponding letter
+                } else {
+                    encoded += char; // Keep non-digit characters (e.g., decimal point)
+                }
+            }
+            return encoded;
+        }
+
+        // --- UI Update Functions ---
+        function handleShapeChange() {
+            const selectedShape = shapeSelector.value;
+            // Toggle visibility of dimension input sections
+            straightInputsContainer.classList.toggle('hidden-inputs', selectedShape !== 'straight');
+            lShapeInputsContainer.classList.toggle('hidden-inputs', selectedShape !== 'l-shaped');
+
+            // Toggle visibility of partition (door) control sections
+            straightPartitionsControl.classList.toggle('hidden-inputs', selectedShape !== 'straight');
+            lMainPartitionsControl.classList.toggle('hidden-inputs', selectedShape !== 'l-shaped');
+            lReturnPartitionsControl.classList.toggle('hidden-inputs', selectedShape !== 'l-shaped');
+
+            updateHorizontalPartitionControlsState();
+            autoCalculateDoors();
+            updateWardrobeVisuals();
+            updatePricingUIConfig();
+        }
+
+        function updatePricingUIConfig() {
+            const selectedShape = shapeSelector.value;
+            let assignableLegDoors = 0; // Doors on the main "legs" of the wardrobe (excluding corner)
+            let cornerUnitsDisplayVal = 0; // Number of corner units (0 or 1)
+
+            if (selectedShape === 'straight') {
+                assignableLegDoors = (parseInt(numPartitionsStraightDisplay.textContent) || 1);
+                cornerUnitsDisplayVal = 0;
+            } else if (selectedShape === 'l-shaped') {
+                const mainLegDoors = (parseInt(numPartitionsLMainDisplay.textContent) || 1);
+                const returnLegDoors = (parseInt(numPartitionsLReturnDisplay.textContent) || 1);
+                assignableLegDoors = mainLegDoors + returnLegDoors;
+                cornerUnitsDisplayVal = 1; // L-shape always has one corner unit
+            }
+
+            currentAssignableDoors = assignableLegDoors; // Store for door type assignment
+
+            // Update UI displays for pricing section
+            displayTotalDoorsForPricing.textContent = assignableLegDoors;
+            displayCornerUnits.textContent = cornerUnitsDisplayVal;
+            displayMaxAssignableDoors.textContent = currentAssignableDoors;
+
+            // Default to all wooden doors when config changes
+            numWoodenDoorsInput.value = currentAssignableDoors;
+            numAluminumDoorsInput.value = 0;
+
+            calculateAndDisplayPrice(); // Recalculate price
+        }
+
+        function handleDoorTypeChange(doorTypeToChange, changeAmount) {
+            let currentWooden = parseInt(numWoodenDoorsInput.value) || 0;
+            let currentAluminum = parseInt(numAluminumDoorsInput.value) || 0;
+
+            if (doorTypeToChange === 'wooden') {
+                let newWooden = currentWooden + changeAmount;
+                // Ensure new count is within valid range (0 to total assignable doors)
+                if (newWooden >= 0 && newWooden <= currentAssignableDoors) {
+                    numWoodenDoorsInput.value = newWooden;
+                    // Adjust aluminum doors to maintain total
+                    numAluminumDoorsInput.value = currentAssignableDoors - newWooden;
+                }
+            } else if (doorTypeToChange === 'aluminum') {
+                let newAluminum = currentAluminum + changeAmount;
+                if (newAluminum >= 0 && newAluminum <= currentAssignableDoors) {
+                    numAluminumDoorsInput.value = newAluminum;
+                    numWoodenDoorsInput.value = currentAssignableDoors - newAluminum;
+                }
+            }
+            calculateAndDisplayPrice();
+        }
+
+        function getDoorCost(doorType, heightCm) {
+            // Cost per door based on type and height
+            if (doorType === "wooden") {
+                if (heightCm >= 0 && heightCm <= 220) return 350;
+                if (heightCm >= 221 && heightCm <= 240) return 375;
+                if (heightCm >= 241 && heightCm <= 300) return 550;
+                return 550; // Default for heights > 300
+            } else if (doorType === "aluminum") {
+                if (heightCm >= 0 && heightCm <= 240) return 625;
+                if (heightCm >= 241 && heightCm <= 300) return 850;
+                return 850; // Default for heights > 300
+            }
+            return 0; // Default if type or height is unrecognized
+        }
+
+        function calculateAndDisplayPrice() {
+            const woodenDoorsCount = parseInt(numWoodenDoorsInput.value) || 0;
+            const aluminumDoorsCount = parseInt(numAluminumDoorsInput.value) || 0;
+            const isLShape = shapeSelector.value === 'l-shaped';
+            const currentHeight = parseFloat(heightInput.value) || 200;
+
+            let costPriceSubtotal = 0; // This is the internal "cost" price, not selling price
+            costPriceSubtotal += woodenDoorsCount * getDoorCost("wooden", currentHeight);
+            costPriceSubtotal += aluminumDoorsCount * getDoorCost("aluminum", currentHeight);
+
+            if (isLShape) { // Add cost for the fixed corner door (assumed wooden)
+                costPriceSubtotal += getDoorCost("wooden", currentHeight);
+            }
+
+            // Calculate selling price based on cost price (e.g., markup)
+            const costPriceVAT = costPriceSubtotal * 0.05;
+            const totalCostPrice = costPriceSubtotal + costPriceVAT;
+            const rawSellingPriceIncludingVAT = totalCostPrice * 2; // Example: 100% markup on total cost price
+
+            // Deconstruct selling price into subtotal and VAT for display
+            const sellingPriceVAT = rawSellingPriceIncludingVAT * (5 / 105); // VAT component of selling price
+            const sellingPriceSubtotal = rawSellingPriceIncludingVAT - sellingPriceVAT; // Subtotal of selling price
+            const roundedSellingPriceTotal = Math.ceil(rawSellingPriceIncludingVAT / 10) * 10; // Round up to nearest 10
+
+            // Update UI display for price
+            displaySubtotal.textContent = sellingPriceSubtotal.toFixed(2);
+            displayVat.textContent = sellingPriceVAT.toFixed(2);
+            displayTotalRounded.textContent = roundedSellingPriceTotal.toFixed(0);
+        }
+
+        function updateHorizontalPartitionControlsState() {
+            const currentHeight = parseFloat(heightInput.value) || 0;
+            horizontalPartitionContainer.classList.remove('hidden-inputs'); // Always show the checkbox container
+            enableHorizontalPartitionCheckbox.disabled = false; // Enable checkbox by default
+
+            if (enableHorizontalPartitionCheckbox.checked) {
+                horizontalPartitionPositionControl.classList.remove('hidden-inputs'); // Show position input
+                horizontalPartitionHeightInput.max = currentHeight - 10; // Max shelf height is 10cm below wardrobe top
+                let currentShelfPos = parseFloat(horizontalPartitionHeightInput.value) || HORIZONTAL_PARTITION_DEFAULT_POS;
+                // Ensure shelf position is within valid range
+                currentShelfPos = Math.min(currentShelfPos, parseFloat(horizontalPartitionHeightInput.max));
+                currentShelfPos = Math.max(currentShelfPos, parseFloat(horizontalPartitionHeightInput.min));
+                horizontalPartitionHeightInput.value = currentShelfPos;
+            } else {
+                horizontalPartitionPositionControl.classList.add('hidden-inputs'); // Hide position input
+            }
+        }
+
+        function autoCalculateDoors() {
+            const shape = shapeSelector.value;
+            let numDoors, actualDoorWidth;
+            if (shape === 'straight') {
+                const width = parseFloat(s_widthInput.value) || 180;
+                numDoors = calculateDoorsForWidth(width);
+                numPartitionsStraightDisplay.textContent = numDoors;
+                actualDoorWidth = (width > 0 && numDoors > 0) ? (width / numDoors) : 0;
+                doorWidthStraightDisplay.textContent = `(~${actualDoorWidth.toFixed(1)}cm)`;
+            } else if (shape === 'l-shaped') {
+                // Main leg (left side)
+                const overallMainLegWidth = parseFloat(l_mainWidthInput.value) || 180;
+                const returnLegActualDepthVal = parseFloat(l_returnLegDepthInput.value) || 55;
+                // Actual length of the main leg segment available for doors (overall width - depth of return leg)
+                const actualMainLegSegmentLengthVal = Math.max(10, overallMainLegWidth - returnLegActualDepthVal);
+                numDoors = calculateDoorsForWidth(actualMainLegSegmentLengthVal);
+                numPartitionsLMainDisplay.textContent = numDoors;
+                actualDoorWidth = (actualMainLegSegmentLengthVal > 0 && numDoors > 0) ? (actualMainLegSegmentLengthVal / numDoors) : 0;
+                doorWidthLMainDisplay.textContent = `(~${actualDoorWidth.toFixed(1)}cm)`;
+
+                // Return leg (right side)
+                const rightLength = parseFloat(l_returnLegLengthInput.value) || 120;
+                const mainLegActualDepthVal = parseFloat(l_mainDepthInput.value) || 55;
+                // Effective length of the return leg available for doors (overall length - depth of main leg)
+                const effectiveRightLengthVal = Math.max(0, rightLength - mainLegActualDepthVal);
+                numDoors = calculateDoorsForWidth(effectiveRightLengthVal);
+                numPartitionsLReturnDisplay.textContent = numDoors;
+                actualDoorWidth = (effectiveRightLengthVal > 0 && numDoors > 0) ? (effectiveRightLengthVal / numDoors) : 0;
+                doorWidthLReturnDisplay.textContent = `(~${actualDoorWidth.toFixed(1)}cm)`;
+            }
+        }
+
+        function calculateDoorsForWidth(width) {
+            // Target door widths for automatic calculation
+            const TARGET_MAX_DOOR_WIDTH = 59.999;
+            const TARGET_MIN_DOOR_WIDTH = 40.001;
+            if (width < TARGET_MIN_DOOR_WIDTH) return 1; // If width is too small, default to 1 door
+
+            // Attempt 1: Calculate doors based on max target width
+            let numDoorsAttempt1 = Math.ceil(width / TARGET_MAX_DOOR_WIDTH);
+            let doorWidthAttempt1 = width / numDoorsAttempt1;
+
+            if (doorWidthAttempt1 >= TARGET_MIN_DOOR_WIDTH) {
+                return numDoorsAttempt1; // If this results in a valid door width, use it
+            } else {
+                // Attempt 2: Calculate doors based on min target width (if attempt 1 failed)
+                let numDoorsAttempt2 = Math.floor(width / TARGET_MIN_DOOR_WIDTH);
+                if (numDoorsAttempt2 < 1) numDoorsAttempt2 = 1; // Ensure at least 1 door
+
+                // Fallback: if attempt 1 door width is at least 20cm, use that, otherwise use attempt 2
+                if (doorWidthAttempt1 >= 20 && numDoorsAttempt1 > 0) return numDoorsAttempt1;
+                return numDoorsAttempt2 > 0 ? numDoorsAttempt2 : 1;
+            }
+        }
+
+        function changeDoors(type, amount) {
+            let displayElement, widthForLimitGetter, doorWidthDisplayElement;
+            // Determine which set of controls to update based on 'type'
+            if (type === 'straight') {
+                displayElement = numPartitionsStraightDisplay;
+                doorWidthDisplayElement = doorWidthStraightDisplay;
+                widthForLimitGetter = () => parseFloat(s_widthInput.value) || 180;
+            } else if (type === 'l_left') {
+                displayElement = numPartitionsLMainDisplay;
+                doorWidthDisplayElement = doorWidthLMainDisplay;
+                widthForLimitGetter = () => { // Calculate effective width for L-shape main leg
+                    const overallMainW = parseFloat(l_mainWidthInput.value) || 180;
+                    const returnLD = parseFloat(l_returnLegDepthInput.value) || 55;
+                    return Math.max(10, overallMainW - returnLD);
+                };
+            } else if (type === 'l_right') {
+                displayElement = numPartitionsLReturnDisplay;
+                doorWidthDisplayElement = doorWidthLReturnDisplay;
+                widthForLimitGetter = () => { // Calculate effective width for L-shape return leg
+                    const returnLength = parseFloat(l_returnLegLengthInput.value) || 120;
+                    const mainDepthForReturnCalc = parseFloat(l_mainDepthInput.value) || 55;
+                    return Math.max(0, returnLength - mainDepthForReturnCalc);
+                };
+            } else return; // Invalid type
+
+            let currentDoors = parseInt(displayElement.textContent);
+            currentDoors += amount;
+            if (currentDoors < 1) currentDoors = 1; // Minimum 1 door
+
+            // Limit max doors based on a minimum manual door width (e.g., 20cm)
+            const widthForLimit = widthForLimitGetter();
+            const minManualDoorWidth = 20;
+            const maxAllowedDoors = (widthForLimit > 0) ? Math.max(1, Math.floor(widthForLimit / minManualDoorWidth)) : 1;
+            if (currentDoors > maxAllowedDoors) currentDoors = maxAllowedDoors;
+
+            displayElement.textContent = currentDoors;
+            const actualDoorWidth = (widthForLimit > 0 && currentDoors > 0) ? (widthForLimit / currentDoors) : 0;
+            doorWidthDisplayElement.textContent = `(~${actualDoorWidth.toFixed(1)}cm)`;
+            updateWardrobeVisuals(); // Redraw wardrobe with new door count
+        }
+
+        // --- --- FIX: MODIFIED ACTION FUNCTIONS --- ---
+        
+        // This helper function sends data to the Flutter app.
+        function sendToFlutter(handlerName, data) {
+            if (window.flutter_inappwebview && typeof window.flutter_inappwebview.callHandler === 'function') {
+                window.flutter_inappwebview.callHandler(handlerName, data);
+            } else {
+                console.error('Flutter InAppWebView bridge is not available.');
+                messageArea.textContent = "Action not available in this view.";
+                messageArea.className = 'error visible';
+                setTimeout(() => { messageArea.className = ''; }, 3000);
+            }
+        }
+
+        async function handlePrint() {
+            const compositeCanvas = await generateCompositeImageForPrintOrShare();
+            const dataURL = compositeCanvas.toDataURL('image/png');
+            // Remove the 'data:image/png;base64,' prefix to get only the base64 string
+            const base64Data = dataURL.substring(dataURL.indexOf(',') + 1);
+            // Send the base64 data to Flutter to handle printing
+            sendToFlutter('print', base64Data);
+        }
+
+        async function handleShareImage() {
+            const compositeCanvas = await generateCompositeImageForPrintOrShare();
+            const dataURL = compositeCanvas.toDataURL('image/png');
+            const base64Data = dataURL.substring(dataURL.indexOf(',') + 1);
+            const info = getWardrobeInfoData();
+            // Send both image and text data to Flutter
+            sendToFlutter('share', { 
+                imageData: base64Data, 
+                text: `Check out this wardrobe design: ${info.dimensions}. Total: ${info.totalSellingPrice}` 
+            });
+        }
+
+        async function handleExportImage() {
+            const compositeCanvas = await generateCompositeImageForPrintOrShare();
+            const dataURL = compositeCanvas.toDataURL('image/png');
+            const base64Data = dataURL.substring(dataURL.indexOf(',') + 1);
+            
+            const now = new Date();
+            const filename = `wardrobe_design_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.png`;
+
+            // Send image data and suggested filename to Flutter
+            sendToFlutter('export', { imageData: base64Data, filename: filename });
+        }
+
+
+        // ... the rest of your JS code (generateCompositeImageForPrintOrShare, init, etc.) remains the same ...
+        async function generateCompositeImageForPrintOrShare() {
+            const exportScale = 3; // Increase resolution for better quality print/share
+            const originalCanvasWidth = canvasContainer.clientWidth;
+            const originalCanvasHeight = canvasContainer.clientHeight;
+            const targetWidth = originalCanvasWidth * exportScale;
+            const targetHeight = originalCanvasHeight * exportScale;
+
+            // Temporarily resize renderer for high-res capture
+            renderer.setSize(targetWidth, targetHeight, false);
+            renderScene(); // Render the scene at high resolution
+
+            // Create a new canvas to draw the composite image
+            const compositeCanvas = document.createElement('canvas');
+            compositeCanvas.width = targetWidth;
+            compositeCanvas.height = targetHeight;
+            const ctx = compositeCanvas.getContext('2d');
+
+            // Draw the 3D scene onto the composite canvas
+            ctx.drawImage(renderer.domElement, 0, 0, targetWidth, targetHeight);
+
+            // Restore renderer to original size for live view
+            renderer.setSize(originalCanvasWidth, originalCanvasHeight, false);
+            renderScene();
+
+            // Prepare and draw the text overlay (company info, dimensions, price)
+            const info = getWardrobeInfoData();
+            const textLines = [
+                info.companyName,
+                info.dimensions,
+                info.codedCost, // Display coded cost
+                info.doorConfig,
+                `Total: ${info.totalSellingPrice}`
+            ];
+
+            const padding = 15 * exportScale;
+            const baseFontSize = 10 * exportScale;
+            const boldFontSize = 12 * exportScale;
+            const lineSpacing = 5 * exportScale;
+
+            ctx.textBaseline = "top";
+            let maxTextWidth = 0;
+            // Calculate max text width for box sizing
+            textLines.forEach((line, index) => {
+                ctx.font = (index === 0 || line.startsWith("Total:")) ? `bold ${boldFontSize}px Arial` : `${baseFontSize}px Arial`;
+                const metrics = ctx.measureText(line);
+                if (metrics.width > maxTextWidth) maxTextWidth = metrics.width;
+            });
+
+            const boxWidth = maxTextWidth + (padding * 2);
+            let calculatedBoxHeight = padding;
+            // Calculate total box height
+            textLines.forEach((line, index) => {
+                calculatedBoxHeight += (index === 0 || line.startsWith("Total:")) ? boldFontSize : baseFontSize;
+                if (index < textLines.length - 1) calculatedBoxHeight += lineSpacing;
+            });
+            calculatedBoxHeight += padding;
+
+            // Position the text box (e.g., bottom-left)
+            const boxOffsetX = 15 * exportScale;
+            const boxOffsetY = 15 * exportScale;
+            const boxX = boxOffsetX;
+            const boxY = targetHeight - calculatedBoxHeight - boxOffsetY;
+
+            // Draw text box background and border
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)"; // Semi-transparent white
+            ctx.fillRect(boxX, boxY, boxWidth, calculatedBoxHeight);
+            ctx.strokeStyle = "rgba(50, 50, 50, 0.9)";
+            ctx.lineWidth = 1 * exportScale;
+            ctx.strokeRect(boxX, boxY, boxWidth, calculatedBoxHeight);
+
+            // Draw text lines
+            ctx.fillStyle = "#222222"; // Dark text color
+            ctx.textAlign = "left";
+            let currentTextY = boxY + padding;
+            textLines.forEach((line, index) => {
+                const currentLineHeight = (index === 0 || line.startsWith("Total:")) ? boldFontSize : baseFontSize;
+                ctx.font = (index === 0 || line.startsWith("Total:")) ? `bold ${boldFontSize}px Arial` : `${baseFontSize}px Arial`;
+                ctx.fillText(line, boxX + padding , currentTextY);
+                currentTextY += currentLineHeight + lineSpacing;
+            });
+
+            return compositeCanvas; // Return the canvas element with the composite image
+        }
+        function handleZoomToFit() {
+            if (!wardrobeGroup || wardrobeGroup.children.length === 0) return; // Ensure wardrobe exists
+            wardrobeGroup.updateMatrixWorld(true); // Update world matrices for accurate bounding box
+
+            const box = new THREE.Box3().setFromObject(wardrobeGroup); // Get bounding box of the wardrobe
+            if (box.isEmpty()) return; // Exit if box is empty (e.g., no geometry)
+
+            const center = box.getCenter(new THREE.Vector3()); // Get center of the bounding box
+            const size = box.getSize(new THREE.Vector3()); // Get size of the bounding box
+
+            controls.target.copy(center); // Set orbit controls target to the center of the wardrobe
+
+            // Calculate distance to fit the object in view based on FOV and aspect ratio
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fitHeightDistance = maxDim / (2 * Math.atan(Math.PI * camera.fov / 360));
+            const fitWidthDistance = (maxDim / camera.aspect) / (2 * Math.atan(Math.PI * camera.fov / 360));
+            let distance = Math.max(fitHeightDistance, fitWidthDistance);
+            distance *= 1.35; // Add a small margin
+
+            // Position camera along the current view direction at the calculated distance
+            const direction = new THREE.Vector3();
+            camera.getWorldPosition(direction); // Get current camera position
+            direction.sub(controls.target).normalize(); // Get direction vector from target to camera
+
+            camera.position.copy(controls.target).addScaledVector(direction, distance);
+            controls.update(); // Update controls to apply changes
+            renderScene();
+        }
+
+        // --- 3D Object Management ---
+        function clearGroup(group) { // Utility to remove all children from a Three.js group and dispose geometries/materials
+            while(group.children.length > 0){
+                const object = group.children[0];
+                if(object.geometry) object.geometry.dispose();
+                if(object.material) {
+                    // Handle material map disposal (textures)
+                    if (object.material.map && object.material.map.dispose) object.material.map.dispose();
+                    // Handle array of materials (e.g., MultiMaterial)
+                    if (Array.isArray(object.material)) {
+                        object.material.forEach(m => { if(m.map && m.map.dispose) m.map.dispose(); if(m.dispose) m.dispose(); });
+                    } else { // Single material
+                        object.material.dispose();
+                    }
+                }
+                group.remove(object);
+            }
+        }
+
+        function createWardrobeSegment(w, h, d, numVerticalLinesToDraw, materialOutline, materialPartitionDashed,
+                                       materialSolid, materialPartitionFrontLine, // Added new material for front lines
+                                       addHorizontalShelf, horizontalShelfAbsY,
+                                       isReturnLeg = false, mainLegDepthForReturn = 0) {
+            const segmentGroup = new THREE.Group();
+            segmentGroup.userData = { width: w, height: h, depth: d, isReturn: isReturnLeg, mainDepth: mainLegDepthForReturn }; // Store dimensions for reference
+
+            // Main box outline
+            const geom = new THREE.BoxGeometry(w, h, d);
+            const edges = new THREE.EdgesGeometry(geom);
+            const outline = new THREE.LineSegments(edges, materialOutline);
+            segmentGroup.add(outline);
+
+            // Solid planes for top and back (and connecting side for return leg)
+            const topPlaneGeom = new THREE.PlaneGeometry(w, d);
+            const topPlane = new THREE.Mesh(topPlaneGeom, materialSolid);
+            topPlane.rotation.x = -Math.PI / 2;
+            topPlane.position.y = h / 2;
+            segmentGroup.add(topPlane);
+
+            const backPlaneGeom = new THREE.PlaneGeometry(w, h);
+            const backPlane = new THREE.Mesh(backPlaneGeom, materialSolid);
+            backPlane.position.z = -d / 2;
+            segmentGroup.add(backPlane);
+
+            if (isReturnLeg) { // Add a side plane for the return leg to connect visually
+                const connectingSidePlaneGeom = new THREE.PlaneGeometry(d, h);
+                const connectingSidePlane = new THREE.Mesh(connectingSidePlaneGeom, materialSolid);
+                connectingSidePlane.rotation.y = -Math.PI / 2; // Rotate to form side
+                connectingSidePlane.position.x = -w / 2; // Position at the edge
+                segmentGroup.add(connectingSidePlane);
+            }
+
+            const numberOfDoorsInThisSegment = numVerticalLinesToDraw + 1;
+
+            // Draw vertical partition lines (doors)
+            if (isReturnLeg) {
+                // For return leg, there's a fixed partition where it meets the main leg
+                const fixedPartitionLocalX = -w/2 + mainLegDepthForReturn;
+                if (mainLegDepthForReturn > 0 && mainLegDepthForReturn < w - 0.1) { // Only draw if it makes sense
+                     const fixedLinesData = [
+                        { p1: new THREE.Vector3(fixedPartitionLocalX, -h/2, d/2), p2: new THREE.Vector3(fixedPartitionLocalX, h/2, d/2), material: materialPartitionFrontLine }, // Front vertical
+                        { p1: new THREE.Vector3(fixedPartitionLocalX, -h/2, -d/2), p2: new THREE.Vector3(fixedPartitionLocalX, h/2, -d/2), material: materialPartitionDashed }, // Back vertical
+                        { p1: new THREE.Vector3(fixedPartitionLocalX, h/2, d/2), p2: new THREE.Vector3(fixedPartitionLocalX, h/2, -d/2), material: materialPartitionDashed },   // Top horizontal
+                        { p1: new THREE.Vector3(fixedPartitionLocalX, -h/2, d/2), p2: new THREE.Vector3(fixedPartitionLocalX, -h/2, -d/2), material: materialPartitionDashed }  // Bottom horizontal
+                    ];
+                    fixedLinesData.forEach(lineData => {
+                        const pGeom = new THREE.BufferGeometry().setFromPoints([lineData.p1, lineData.p2]);
+                        if (typeof pGeom.computeLineDistances === 'function') pGeom.computeLineDistances(); // For dashed lines
+                        segmentGroup.add(new THREE.Line(pGeom, lineData.material));
+                    });
+                }
+                // Doors for the remaining usable space of the return leg
+                const usableSpaceLength = (w/2) - fixedPartitionLocalX; // Length available for doors
+                if (numVerticalLinesToDraw > 0 && usableSpaceLength > 1) {
+                    const doorWidthInUsable = usableSpaceLength / numberOfDoorsInThisSegment;
+                    for (let i = 1; i <= numVerticalLinesToDraw; i++) {
+                        const partXPos = fixedPartitionLocalX + (i * doorWidthInUsable);
+                        const linesData = [
+                            { p1: new THREE.Vector3(partXPos, -h/2, d/2), p2: new THREE.Vector3(partXPos, h/2, d/2), material: materialPartitionFrontLine },
+                            { p1: new THREE.Vector3(partXPos, -h/2, -d/2), p2: new THREE.Vector3(partXPos, h/2, -d/2), material: materialPartitionDashed },
+                            { p1: new THREE.Vector3(partXPos, h/2, d/2), p2: new THREE.Vector3(partXPos, h/2, -d/2), material: materialPartitionDashed },
+                            { p1: new THREE.Vector3(partXPos, -h/2, d/2), p2: new THREE.Vector3(partXPos, -h/2, -d/2), material: materialPartitionDashed }
+                        ];
+                        linesData.forEach(lineData => {
+                            const pGeom = new THREE.BufferGeometry().setFromPoints([lineData.p1, lineData.p2]);
+                            if (typeof pGeom.computeLineDistances === 'function') pGeom.computeLineDistances();
+                            segmentGroup.add(new THREE.Line(pGeom, lineData.material));
+                        });
+                    }
+                }
+            } else { // For straight wardrobe or main leg of L-shape
+                if (numVerticalLinesToDraw > 0 && w > 0) {
+                    const doorWidth = w / numberOfDoorsInThisSegment;
+                    for (let i = 1; i <= numVerticalLinesToDraw; i++) {
+                        const partXPos = -w / 2 + i * doorWidth; // Calculate X position of partition
+                        const linesData = [ // Lines for each partition
+                            { p1: new THREE.Vector3(partXPos, -h/2, d/2), p2: new THREE.Vector3(partXPos, h/2, d/2), material: materialPartitionFrontLine }, // Front vertical - use darker material
+                            { p1: new THREE.Vector3(partXPos, -h/2, -d/2), p2: new THREE.Vector3(partXPos, h/2, -d/2), material: materialPartitionDashed }, // Back vertical
+                            { p1: new THREE.Vector3(partXPos, h/2, d/2), p2: new THREE.Vector3(partXPos, h/2, -d/2), material: materialPartitionDashed },   // Top horizontal
+                            { p1: new THREE.Vector3(partXPos, -h/2, d/2), p2: new THREE.Vector3(partXPos, -h/2, -d/2), material: materialPartitionDashed }  // Bottom horizontal
+                        ];
+                        linesData.forEach(lineData => {
+                            const pGeom = new THREE.BufferGeometry().setFromPoints([lineData.p1, lineData.p2]);
+                            if (typeof pGeom.computeLineDistances === 'function') pGeom.computeLineDistances();
+                            segmentGroup.add(new THREE.Line(pGeom, lineData.material));
+                        });
+                    }
+                }
+            }
+
+            // Draw horizontal shelf if enabled
+            if (addHorizontalShelf) {
+                const localShelfY = horizontalShelfAbsY - (h/2); // Convert absolute Y to local Y for the segment
+                 if (localShelfY > -h/2 + 5 && localShelfY < h/2 - 5) { // Ensure shelf is within bounds
+                    const shelfLinesData = [ // Lines for shelf outline
+                        { p1: new THREE.Vector3(-w/2, localShelfY, d/2), p2: new THREE.Vector3(w/2, localShelfY, d/2) },   // Front
+                        { p1: new THREE.Vector3(-w/2, localShelfY, -d/2), p2: new THREE.Vector3(w/2, localShelfY, -d/2) }, // Back
+                        { p1: new THREE.Vector3(-w/2, localShelfY, d/2), p2: new THREE.Vector3(-w/2, localShelfY, -d/2) }, // Left
+                        { p1: new THREE.Vector3(w/2, localShelfY, d/2), p2: new THREE.Vector3(w/2, localShelfY, -d/2) }    // Right
+                    ];
+                    shelfLinesData.forEach(lineData => {
+                        const shelfLineGeom = new THREE.BufferGeometry().setFromPoints([lineData.p1, lineData.p2]);
+                        if (typeof shelfLineGeom.computeLineDistances === 'function') shelfLineGeom.computeLineDistances();
+                        segmentGroup.add(new THREE.Line(shelfLineGeom, materialPartitionDashed)); // Use standard dashed for shelf outline
+                    });
+                    // Add a solid plane for the shelf surface
+                    const shelfPlaneGeom = new THREE.PlaneGeometry(w, d);
+                    const shelfPlane = new THREE.Mesh(shelfPlaneGeom, materialSolid); // Use materialSolid with polygonOffset
+                    shelfPlane.rotation.x = -Math.PI / 2;
+                    shelfPlane.position.y = localShelfY;
+                    segmentGroup.add(shelfPlane);
+                 } else {
+                    // Display error if shelf position is invalid (though input validation should prevent this)
+                    messageArea.textContent = "Shelf position invalid.";
+                    messageArea.className = 'error visible';
+                    setTimeout(() => { messageArea.className = ''; }, 3000);
+                 }
+            }
+            return segmentGroup;
+        }
+
+        function createDimensionSprite(text, scaleMultiplier = 1.0) {
+            const fontface = "Arial";
+            const fontsize = 48; // Base font size for texture
+            const fontWeight = "bold";
+            const textColor = { r: 0, g: 0, b: 0, a: 1.0 }; // Black text
+
+            // Create a canvas to render text to texture
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            context.font = fontWeight + " " + fontsize + "px " + fontface;
+
+            const metrics = context.measureText(text); // Measure text width
+            const textWidth = metrics.width;
+            const canvasWidth = textWidth + 20; // Add some padding
+            const canvasHeight = fontsize + 10; // Add some padding
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+
+            // Re-set font after canvas resize (some browsers require this)
+            context.font = fontWeight + " " + fontsize + "px " + fontface;
+            context.fillStyle = `rgba(${textColor.r}, ${textColor.g}, ${textColor.b}, ${textColor.a})`;
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(text, canvasWidth / 2, canvasHeight / 2); // Draw text centered
+
+            const texture = new THREE.CanvasTexture(canvas); // Create texture from canvas
+            texture.needsUpdate = true;
+
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMaterial);
+
+            // Scale sprite based on canvas size and desired world scale
+            const baseScaleFactor = 0.075; // Adjust this to control overall label size
+            sprite.scale.set(canvasWidth * baseScaleFactor * scaleMultiplier, canvasHeight * baseScaleFactor * scaleMultiplier, 1.0);
+            return sprite;
+        }
+
+        function updateDimensionLabels() {
+            clearGroup(dimensionLabelsGroup); // Clear previous labels
+            if (!wardrobeGroup || wardrobeGroup.children.length === 0) { renderScene(); return; } // Ensure wardrobe exists
+
+            const scaleMultiplier = parseFloat(dimensionLabelScaleSlider.value); // Get current scale from slider
+            const currentOffset = parseFloat(dimensionOffsetSlider.value); // Get current offset from slider
+            const selectedShape = shapeSelector.value;
+
+            wardrobeGroup.updateMatrixWorld(true); // Ensure world matrices are up-to-date
+            const overallBox = new THREE.Box3().setFromObject(wardrobeGroup); // Get bounding box of the entire wardrobe
+            if (overallBox.isEmpty()) { renderScene(); return; }
+
+            const wardrobeHeightVal = parseFloat(heightInput.value);
+
+            // --- Height Dimension ---
+            if (wardrobeHeightVal > 0) {
+                const heightText = `${wardrobeHeightVal.toFixed(0)}cm H`;
+                const heightSprite = createDimensionSprite(heightText, scaleMultiplier);
+                let p1H_obj, p2H_obj, offsetVecH; // Points for dimension line and offset vector
+
+                if (selectedShape === 'l-shaped') { // Position height label differently for L-shape
+                    p1H_obj = new THREE.Vector3(overallBox.max.x, overallBox.min.y, overallBox.max.z);
+                    p2H_obj = new THREE.Vector3(overallBox.max.x, overallBox.max.y, overallBox.max.z);
+                    offsetVecH = new THREE.Vector3(1, 0, 1).normalize(); // Diagonal offset
+                } else { // Straight wardrobe
+                    const overallCenterZ = (overallBox.min.z + overallBox.max.z) / 2;
+                    p1H_obj = new THREE.Vector3(overallBox.max.x, overallBox.min.y, overallCenterZ);
+                    p2H_obj = new THREE.Vector3(overallBox.max.x, overallBox.max.y, overallCenterZ);
+                    offsetVecH = new THREE.Vector3(1, 0, 0); // Offset along X-axis
+                }
+
+                // Create and position dimension line
+                const lineP1H = p1H_obj.clone().addScaledVector(offsetVecH, currentOffset);
+                const lineP2H = p2H_obj.clone().addScaledVector(offsetVecH, currentOffset);
+                dimensionLabelsGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([lineP1H, lineP2H]), dimensionLineMaterial));
+
+                // Position sprite label
+                heightSprite.position.copy(lineP1H).lerp(lineP2H, 0.5).addScaledVector(offsetVecH, DIM_SPRITE_OFFSET_FROM_LINE);
+                dimensionLabelsGroup.add(heightSprite);
+            }
+
+            // --- Width & Depth Dimensions (Shape Specific) ---
+            if (selectedShape === 'straight') {
+                const sWidthVal = parseFloat(s_widthInput.value);
+                const sDepthVal = parseFloat(s_depthInput.value);
+                const overallCenterZ = (overallBox.min.z + overallBox.max.z) / 2; // Center Z for label placement
+
+                // Width Dimension (Straight)
+                if (sWidthVal > 0) {
+                    const widthText = `${sWidthVal.toFixed(0)}cm W`;
+                    const widthSprite = createDimensionSprite(widthText, scaleMultiplier);
+                    const p1W_obj = new THREE.Vector3(overallBox.min.x, overallBox.max.y, overallCenterZ);
+                    const p2W_obj = new THREE.Vector3(overallBox.max.x, overallBox.max.y, overallCenterZ);
+                    const offsetVecW = new THREE.Vector3(0, 1, 0); // Offset along Y-axis (above)
+                    const lineP1W = p1W_obj.clone().addScaledVector(offsetVecW, currentOffset);
+                    const lineP2W = p2W_obj.clone().addScaledVector(offsetVecW, currentOffset);
+                    dimensionLabelsGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([lineP1W, lineP2W]), dimensionLineMaterial));
+                    widthSprite.position.copy(lineP1W).lerp(lineP2W, 0.5).addScaledVector(offsetVecW, DIM_SPRITE_OFFSET_FROM_LINE);
+                    dimensionLabelsGroup.add(widthSprite);
+                }
+
+                // Depth Dimension (Straight)
+                if (sDepthVal > 0) {
+                    const depthText = `${sDepthVal.toFixed(0)}cm D`;
+                    const depthSprite = createDimensionSprite(depthText, scaleMultiplier);
+                    const p1D_obj = new THREE.Vector3(overallBox.max.x, overallBox.max.y, overallBox.min.z);
+                    const p2D_obj = new THREE.Vector3(overallBox.max.x, overallBox.max.y, overallBox.max.z);
+                    const offsetVecD = new THREE.Vector3(1, 0, 0); // Offset along X-axis (to the side)
+                    const lineP1D = p1D_obj.clone().addScaledVector(offsetVecD, currentOffset);
+                    const lineP2D = p2D_obj.clone().addScaledVector(offsetVecD, currentOffset);
+                    dimensionLabelsGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([lineP1D, lineP2D]), dimensionLineMaterial));
+                    depthSprite.position.copy(lineP1D).lerp(lineP2D, 0.5).addScaledVector(offsetVecD, DIM_SPRITE_OFFSET_FROM_LINE);
+                    dimensionLabelsGroup.add(depthSprite);
+                }
+            } else if (selectedShape === 'l-shaped') {
+                const mainLegOverallWVal = parseFloat(l_mainWidthInput.value);
+                const mainLegOverallDVal = parseFloat(l_mainDepthInput.value);
+                const returnLegOverallLVal = parseFloat(l_returnLegLengthInput.value);
+                const returnLegOverallDVal = parseFloat(l_returnLegDepthInput.value);
+                const upwardOffsetVec = new THREE.Vector3(0, 1, 0); // Common upward offset for L-shape labels
+
+                // Main Leg Overall Width (L-Shape)
+                if (mainLegOverallWVal > 0) {
+                    const text = `${mainLegOverallWVal.toFixed(0)}cm W`;
+                    const sprite = createDimensionSprite(text, scaleMultiplier);
+                    // Points define the line along the top-front edge of the main leg's overall width extent
+                    const p1 = new THREE.Vector3(overallBox.min.x, overallBox.max.y, overallBox.min.z);
+                    const p2 = new THREE.Vector3(overallBox.min.x + mainLegOverallWVal, overallBox.max.y, overallBox.min.z);
+                    const lineP1 = p1.clone().addScaledVector(upwardOffsetVec, currentOffset);
+                    const lineP2 = p2.clone().addScaledVector(upwardOffsetVec, currentOffset);
+                    dimensionLabelsGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([lineP1, lineP2]), dimensionLineMaterial));
+                    sprite.position.copy(lineP1).lerp(lineP2, 0.5).addScaledVector(upwardOffsetVec, DIM_SPRITE_OFFSET_FROM_LINE);
+                    dimensionLabelsGroup.add(sprite);
+                }
+
+                // Main Leg Overall Depth (L-Shape)
+                if (mainLegOverallDVal > 0) {
+                    const text = `${mainLegOverallDVal.toFixed(0)}cm D`;
+                    const sprite = createDimensionSprite(text, scaleMultiplier);
+                    // Points define the line along the top-left edge of the main leg's depth
+                    const p1 = new THREE.Vector3(overallBox.min.x, overallBox.max.y, overallBox.min.z);
+                    const p2 = new THREE.Vector3(overallBox.min.x, overallBox.max.y, overallBox.min.z + mainLegOverallDVal);
+                    const sideOffsetVec = new THREE.Vector3(-1,0,0); // Offset to the left
+                    const spritePosP1 = p1.clone().addScaledVector(sideOffsetVec, currentOffset);
+                    const spritePosP2 = p2.clone().addScaledVector(sideOffsetVec, currentOffset);
+                    dimensionLabelsGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([spritePosP1, spritePosP2]), dimensionLineMaterial));
+                    sprite.position.copy(spritePosP1).lerp(spritePosP2, 0.5).addScaledVector(sideOffsetVec, DIM_SPRITE_OFFSET_FROM_LINE);
+                    dimensionLabelsGroup.add(sprite);
+                }
+
+                // Return Leg Overall Length (L-Shape)
+                if (returnLegOverallLVal > 0) {
+                    const text = `${returnLegOverallLVal.toFixed(0)}cm L`;
+                    const sprite = createDimensionSprite(text, scaleMultiplier);
+                    // Points define the line along the top-back edge of the return leg's length
+                    const p1 = new THREE.Vector3(overallBox.max.x, overallBox.max.y, overallBox.max.z - returnLegOverallLVal);
+                    const p2 = new THREE.Vector3(overallBox.max.x, overallBox.max.y, overallBox.max.z);
+                    const lineP1 = p1.clone().addScaledVector(upwardOffsetVec, currentOffset);
+                    const lineP2 = p2.clone().addScaledVector(upwardOffsetVec, currentOffset);
+                    dimensionLabelsGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([lineP1, lineP2]), dimensionLineMaterial));
+                    sprite.position.copy(lineP1).lerp(lineP2, 0.5).addScaledVector(upwardOffsetVec, DIM_SPRITE_OFFSET_FROM_LINE);
+                    dimensionLabelsGroup.add(sprite);
+                }
+                 // Return Leg Overall Depth (L-Shape)
+                if (returnLegOverallDVal > 0) {
+                    const text = `${returnLegOverallDVal.toFixed(0)}cm D`;
+                    const sprite = createDimensionSprite(text, scaleMultiplier);
+                    // Points define the line along the top-right edge of the return leg's depth
+                    const p1 = new THREE.Vector3(overallBox.max.x - returnLegOverallDVal, overallBox.max.y, overallBox.max.z);
+                    const p2 = new THREE.Vector3(overallBox.max.x, overallBox.max.y, overallBox.max.z);
+                    const lineP1 = p1.clone().addScaledVector(upwardOffsetVec, currentOffset); // Use upward offset for consistency
+                    const lineP2 = p2.clone().addScaledVector(upwardOffsetVec, currentOffset);
+                    dimensionLabelsGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([lineP1, lineP2]), dimensionLineMaterial));
+                    sprite.position.copy(lineP1).lerp(lineP2, 0.5).addScaledVector(upwardOffsetVec, DIM_SPRITE_OFFSET_FROM_LINE);
+                    dimensionLabelsGroup.add(sprite);
+                }
+            }
+            renderScene();
+        }
+
+        function updateWardrobeVisuals() {
+            clearGroup(wardrobeGroup); // Clear previous wardrobe model
+            wardrobeGroup.position.set(0,0,0); // Reset group position
+            wardrobeGroup.rotation.set(0,0,0); // Reset group rotation
+
+            const height = parseFloat(heightInput.value) || 200;
+            const selectedShapeValue = shapeSelector.value;
+
+            // Clear non-success messages
+            if(messageArea.className !== 'success visible' && messageArea.className !== 'success') messageArea.textContent = "";
+
+            // Materials for wardrobe parts
+            const outlineMaterial = new THREE.LineBasicMaterial({ color: 0x1a1a1a, linewidth: 2 }); // Dark outline
+            const partitionMaterialDashed = new THREE.LineDashedMaterial({ color: 0xbbbbbb, linewidth: 1, dashSize: 6, gapSize: 3 }); // Light dashed lines for internal partitions
+            const partitionMaterialFrontLine = new THREE.LineBasicMaterial({ color: 0x555555, linewidth: 1.5 }); // Darker solid line for front partition edges
+
+            // Solid material for planes, with polygonOffset to prevent Z-fighting
+            const whiteSolidMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide,
+                polygonOffset: true,
+                polygonOffsetFactor: 1, // Positive value pushes polygon further away
+                polygonOffsetUnits: 1
+            });
+
+
+            const addHorizontalShelf = enableHorizontalPartitionCheckbox.checked && !enableHorizontalPartitionCheckbox.disabled;
+            const horizontalShelfAbsY = addHorizontalShelf ? (parseFloat(horizontalPartitionHeightInput.value) || HORIZONTAL_PARTITION_DEFAULT_POS) : 0;
+
+            if (selectedShapeValue === 'straight') {
+                const width = parseFloat(s_widthInput.value) || 180;
+                const depth = parseFloat(s_depthInput.value) || 55;
+                const numDoors = parseInt(numPartitionsStraightDisplay.textContent) || 1;
+                const numVerticalLinesToDraw = numDoors - 1; // Number of lines is one less than doors
+
+                // Basic validation for straight wardrobe dimensions
+                if (width <=0 || height <=0 || depth <=0) {
+                    messageArea.textContent = "Straight dimensions must be positive.";
+                    messageArea.className = 'error visible';
+                    setTimeout(() => { messageArea.className = ''; }, 3000);
+                    renderScene(); updateDimensionLabels(); return;
+                }
+
+                const straightSegment = createWardrobeSegment(width, height, depth, numVerticalLinesToDraw, outlineMaterial, partitionMaterialDashed, whiteSolidMaterial, partitionMaterialFrontLine, addHorizontalShelf, horizontalShelfAbsY);
+                straightSegment.name = "straightSegment";
+                wardrobeGroup.add(straightSegment);
+            } else if (selectedShapeValue === 'l-shaped') {
+                // Get dimensions for L-shape
+                const overallMainLegExtent = parseFloat(l_mainWidthInput.value) || 180; // Overall width of the 'main' part of L
+                currentMainLegActualDepth = parseFloat(l_mainDepthInput.value) || 55; // Depth of the main part
+                const returnLegActualLength = parseFloat(l_returnLegLengthInput.value) || 120; // Length of the 'return' part
+                currentReturnLegActualDepth = parseFloat(l_returnLegDepthInput.value) || 55; // Depth of the return part
+
+                // Calculate actual segment lengths considering overlaps at the corner
+                currentActualMainLegSegmentLength = Math.max(10, overallMainLegExtent - currentReturnLegActualDepth);
+                currentEffectiveRightLength = Math.max(0, returnLegActualLength - currentMainLegActualDepth); // This is the length of the return leg part that extends beyond main leg
+
+                const numDoorsLeftSide = parseInt(numPartitionsLMainDisplay.textContent) || 1;
+                const numVerticalLinesLeftSide = numDoorsLeftSide - 1;
+                const numDoorsRightSide = parseInt(numPartitionsLReturnDisplay.textContent) || 1;
+                const numVerticalLinesRightSide = numDoorsRightSide - 1;
+
+                // Basic validation for L-shape dimensions
+                if (currentActualMainLegSegmentLength <=0 || currentMainLegActualDepth <=0 || returnLegActualLength <=0 || currentReturnLegActualDepth <=0 || height <=0 || overallMainLegExtent < currentReturnLegActualDepth || returnLegActualLength < currentMainLegActualDepth ) {
+                    messageArea.textContent = "L-shape dimensions result in invalid segment. Check overlaps.";
+                    messageArea.className = 'error visible';
+                     setTimeout(() => { messageArea.className = ''; }, 3000);
+                    renderScene(); updateDimensionLabels(); return;
+                }
+
+                // Create main leg (left part of L)
+                const leftLeg = createWardrobeSegment(currentActualMainLegSegmentLength, height, currentMainLegActualDepth, numVerticalLinesLeftSide, outlineMaterial, partitionMaterialDashed, whiteSolidMaterial, partitionMaterialFrontLine, addHorizontalShelf, horizontalShelfAbsY, false);
+                leftLeg.name = "leftLeg";
+                // Position it so its back-left corner is effectively at (0,0,0) in its local space before adding to group
+                leftLeg.position.set(currentActualMainLegSegmentLength / 2, 0, -currentMainLegActualDepth / 2);
+                wardrobeGroup.add(leftLeg);
+
+                // Create return leg (right part of L)
+                const rightLeg = createWardrobeSegment(returnLegActualLength, height, currentReturnLegActualDepth, numVerticalLinesRightSide, outlineMaterial, partitionMaterialDashed, whiteSolidMaterial, partitionMaterialFrontLine, addHorizontalShelf, horizontalShelfAbsY, true, currentMainLegActualDepth);
+                rightLeg.name = "rightLeg";
+                rightLeg.rotation.y = -Math.PI / 2; // Rotate to form the L
+                // Position it relative to the main leg
+                rightLeg.position.set( currentActualMainLegSegmentLength + currentReturnLegActualDepth / 2, 0, -currentMainLegActualDepth + returnLegActualLength / 2 );
+                wardrobeGroup.add(rightLeg);
+            }
+
+            // Center the entire wardrobe group at the world origin and lift it so its base is at Y=0
+            wardrobeGroup.updateMatrixWorld(true);
+            const box = new THREE.Box3().setFromObject(wardrobeGroup);
+            if (!box.isEmpty()) {
+                const worldCenter = box.getCenter(new THREE.Vector3());
+                const worldMinY = box.min.y; // Bottom of the wardrobe
+                const translationX = -worldCenter.x;
+                const translationY = -worldMinY; // Amount to lift to sit on Y=0 plane
+                const translationZ = -worldCenter.z;
+                wardrobeGroup.position.x += translationX;
+                wardrobeGroup.position.y += translationY;
+                wardrobeGroup.position.z += translationZ;
+            } else {
+                 wardrobeGroup.position.set(0,0,0); // Fallback if box is empty
+            }
+
+            // Update orbit controls target to the new center (approx middle height)
+            if (controls) {
+                controls.target.set(0, height / 2, 0); // Target the visual center
+                controls.update();
+            }
+
+            updateDimensionLabels(); // Redraw dimension labels for the new model
+            renderScene(); // Render the updated scene
+        }
+
+        // --- Rendering and Animation Loop ---
+        function onWindowResize() {
+            if (!renderer || !camera || !canvasContainer) return;
+            const newWidth = canvasContainer.clientWidth;
+            const newHeight = canvasContainer.clientHeight;
+            if (newWidth > 0 && newHeight > 0) { // Ensure valid dimensions
+                camera.aspect = newWidth / newHeight;
+                camera.updateProjectionMatrix();
+                renderer.setPixelRatio(window.devicePixelRatio); // For sharp rendering on high DPI screens
+                renderer.setSize(newWidth, newHeight);
+                renderScene(); // Re-render after resize
+            }
+        }
+
+        function renderScene() {
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate); // Loop animation
+            if (controls) controls.update(); // Update orbit controls (for damping)
+            // renderScene() is called by controls.update() if there's a change, or explicitly elsewhere when needed.
+        }
+
+        // Ensure DOM is fully loaded before running init
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init(); // DOM is already loaded
+        }
+    </script>
+</body>
+</html>
