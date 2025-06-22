@@ -10,7 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        /* ... All your CSS styles remain exactly the same ... */
         :root {
             /* Night Mode UI Palette */
             --bg-page-night: #121212;
@@ -154,6 +153,38 @@
             vertical-align: middle;
             accent-color: var(--accent-primary-night);
         }
+
+        /* --- NEW STYLES FOR SHAPE BUTTONS --- */
+        .shape-button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .shape-button {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 0.9em;
+            font-weight: 500;
+            background-color: var(--button-secondary-bg-night);
+            color: var(--text-primary-night);
+            border: 1px solid var(--border-night);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .shape-button:hover {
+            background-color: var(--button-secondary-hover-bg-night);
+        }
+
+        .shape-button.active {
+            background-color: var(--accent-primary-night);
+            border-color: var(--accent-primary-darker-night);
+            color: #ffffff;
+            box-shadow: 0 0 8px rgba(187, 134, 252, 0.3);
+        }
+        /* --- END NEW STYLES --- */
 
         .inline-label {
             display: inline-flex;
@@ -447,18 +478,19 @@
     </style>
 </head>
 <body>
-    <!-- ... All your HTML body content remains exactly the same ... -->
+
     <div id="controls-container">
         <h2>Wardrobe Designer</h2>
 
         <div class="config-section">
             <h3 class="section-header">Configuration</h3>
             <div class="control-group">
-                <label for="wardrobeShape">Wardrobe Shape</label>
-                <select id="wardrobeShape">
-                    <option value="straight" selected>Straight</option>
-                    <option value="l-shaped">L-Shaped</option>
-                </select>
+                <label>Wardrobe Shape</label>
+                <!-- UPDATED: Replaced dropdown with buttons -->
+                <div id="shapeSelectorGroup" class="shape-button-group">
+                    <button data-shape="straight" class="shape-button active">Straight</button>
+                    <button data-shape="l-shaped" class="shape-button">L-Shaped</button>
+                </div>
             </div>
         </div>
 
@@ -664,7 +696,6 @@
     <div id="canvas-container"></div>
     
     <script type="module">
-        // ... All your Three.js and logic code remains the same ...
         let scene, camera, renderer, controls;
         let wardrobeGroup;
         let dimensionLabelsGroup;
@@ -672,7 +703,8 @@
         let canvasContainer = document.getElementById('canvas-container');
 
         // --- DOM Element References ---
-        let shapeSelector = document.getElementById('wardrobeShape');
+        // UPDATED: Replaced shapeSelector with shapeSelectorGroup
+        let shapeSelectorGroup = document.getElementById('shapeSelectorGroup');
         let s_widthInput = document.getElementById('s_wardrobeWidth');
         let s_depthInput = document.getElementById('s_wardrobeDepth');
         let l_mainWidthInput = document.getElementById('l_mainWidth');
@@ -717,8 +749,6 @@
         let zoomToFitButton = document.getElementById('zoomToFitButton');
         let shareImageButton = document.getElementById('shareImageButton');
         let messageArea = document.getElementById('message-area');
-        // let printInfoOverlay = document.getElementById('printInfoOverlay'); // No longer directly used for print content
-
 
         // --- Pricing DOM References ---
         let displayTotalDoorsForPricing = document.getElementById('displayTotalDoorsForPricing');
@@ -777,7 +807,12 @@
             scene.add(directionalLight);
 
             // Add event listeners to controls
-            shapeSelector.addEventListener('change', handleShapeChange);
+            // UPDATED: Use event delegation for shape buttons
+            shapeSelectorGroup.addEventListener('click', (event) => {
+                if (event.target.matches('.shape-button')) {
+                    handleShapeChange(event.target.dataset.shape);
+                }
+            });
 
             // List of all dimension input elements
             const allDimInputs = [
@@ -794,7 +829,7 @@
                             updateHorizontalPartitionControlsState();
                         }
                         // If L-shape dimensions or straight width change, auto-calculate doors
-                        if (shapeSelector.value === 'l-shaped' && (input === l_mainWidthInput || input === l_returnLegDepthInput || input === l_returnLegLengthInput || input === l_mainDepthInput)) {
+                        if (getCurrentShape() === 'l-shaped' && (input === l_mainWidthInput || input === l_returnLegDepthInput || input === l_returnLegLengthInput || input === l_mainDepthInput)) {
                              autoCalculateDoors();
                         } else if (input === s_widthInput) {
                              autoCalculateDoors();
@@ -892,18 +927,25 @@
 
             // Initial setup calls
             window.addEventListener('resize', onWindowResize); // Handle window resize
-            handleShapeChange(); // Set initial UI based on default shape
+            // UPDATED: Initialize with 'straight' shape
+            handleShapeChange('straight');
             updateHorizontalPartitionControlsState(); // Set initial shelf control state
             autoCalculateDoors(); // Calculate initial door counts
             updateWardrobeVisuals(); // Draw initial wardrobe
             updatePricingUIConfig(); // Calculate initial price
             animate(); // Start animation loop
         }
+        
+        // --- Helper to get current shape from active button ---
+        function getCurrentShape() {
+            const activeButton = shapeSelectorGroup.querySelector('.shape-button.active');
+            return activeButton ? activeButton.dataset.shape : 'straight'; // Default to straight
+        }
 
         // --- Data Retrieval for Print/Share ---
         function getWardrobeInfoData() {
             const info = {};
-            const selectedShape = shapeSelector.value;
+            const selectedShape = getCurrentShape();
             const currentHeightVal = parseFloat(heightInput.value) || 200;
 
             info.companyName = "Rashid Al Sharari Furniture"; // Company name
@@ -952,8 +994,13 @@
         }
 
         // --- UI Update Functions ---
-        function handleShapeChange() {
-            const selectedShape = shapeSelector.value;
+        // UPDATED: Function signature and logic to handle button state
+        function handleShapeChange(selectedShape) {
+            // Update button active state
+            shapeSelectorGroup.querySelectorAll('.shape-button').forEach(button => {
+                button.classList.toggle('active', button.dataset.shape === selectedShape);
+            });
+            
             // Toggle visibility of dimension input sections
             straightInputsContainer.classList.toggle('hidden-inputs', selectedShape !== 'straight');
             lShapeInputsContainer.classList.toggle('hidden-inputs', selectedShape !== 'l-shaped');
@@ -970,7 +1017,7 @@
         }
 
         function updatePricingUIConfig() {
-            const selectedShape = shapeSelector.value;
+            const selectedShape = getCurrentShape();
             let assignableLegDoors = 0; // Doors on the main "legs" of the wardrobe (excluding corner)
             let cornerUnitsDisplayVal = 0; // Number of corner units (0 or 1)
 
@@ -1038,7 +1085,7 @@
         function calculateAndDisplayPrice() {
             const woodenDoorsCount = parseInt(numWoodenDoorsInput.value) || 0;
             const aluminumDoorsCount = parseInt(numAluminumDoorsInput.value) || 0;
-            const isLShape = shapeSelector.value === 'l-shaped';
+            const isLShape = getCurrentShape() === 'l-shaped';
             const currentHeight = parseFloat(heightInput.value) || 200;
 
             let costPriceSubtotal = 0; // This is the internal "cost" price, not selling price
@@ -1084,7 +1131,7 @@
         }
 
         function autoCalculateDoors() {
-            const shape = shapeSelector.value;
+            const shape = getCurrentShape();
             let numDoors, actualDoorWidth;
             if (shape === 'straight') {
                 const width = parseFloat(s_widthInput.value) || 180;
@@ -1524,7 +1571,7 @@
 
             const scaleMultiplier = parseFloat(dimensionLabelScaleSlider.value); // Get current scale from slider
             const currentOffset = parseFloat(dimensionOffsetSlider.value); // Get current offset from slider
-            const selectedShape = shapeSelector.value;
+            const selectedShape = getCurrentShape();
 
             wardrobeGroup.updateMatrixWorld(true); // Ensure world matrices are up-to-date
             const overallBox = new THREE.Box3().setFromObject(wardrobeGroup); // Get bounding box of the entire wardrobe
@@ -1664,7 +1711,7 @@
             wardrobeGroup.rotation.set(0,0,0); // Reset group rotation
 
             const height = parseFloat(heightInput.value) || 200;
-            const selectedShapeValue = shapeSelector.value;
+            const selectedShapeValue = getCurrentShape();
 
             // Clear non-success messages
             if(messageArea.className !== 'success visible' && messageArea.className !== 'success') messageArea.textContent = "";
